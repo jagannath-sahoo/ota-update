@@ -54,8 +54,14 @@ typedef struct Intel_Hex{
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+#define	INTEL_HEX_DATA  			0x00
+#define	END_OF_FILE 					0x01
+#define	EXTENDED_SEGMENT_ADDR 0x02
+#define	EXTENDED_LINEAR_ADDR 	0x04
+#define	START_LINEAR_ADDR 		0x05
 
-
+#define FLASH_SUCCESS					0xAA
+#define FLASH_FAILED					0xBB
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -85,6 +91,9 @@ void jump_to_user_app(void);
   *         returns 1
   */
 uint8_t parse_data_from_intel_hex(TypeDef_Intel_Hex *handle, uint8_t *rx_buffer);
+
+
+uint8_t write_data_into_flash(TypeDef_Intel_Hex *handle, uint32_t mem_base_addr);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

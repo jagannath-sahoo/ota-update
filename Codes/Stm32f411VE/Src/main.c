@@ -322,6 +322,7 @@ static void print_debug_msg(char *format,...)
 void bootloader_uart()
 {
 	TypeDef_Intel_Hex flash_data;
+	uint8_t status;
 	//All the booting related code will be here.
 	/*Demo code only for testing*/
 	while(1)
@@ -332,15 +333,48 @@ void bootloader_uart()
 		HAL_UART_Receive(C_UART,bl_rx_buffer,43,HAL_MAX_DELAY);
 		
 		parse_data_from_intel_hex(&flash_data,bl_rx_buffer);
+		if(flash_data.record_type == INTEL_HEX_DATA)
+		{
+			status = write_data_into_flash(&flash_data, FLASH_SECTOR_2_BASE_ADDRESS);
+		}
 		
-		HAL_Delay(1000);
+		//HAL_Delay(1000);
 		//HAL_UART_Transmit(C_UART,(uint8_t *)flash_data.length,sizeof(flash_data.length),HAL_MAX_DELAY);
-		HAL_UART_Transmit(C_UART,(uint8_t *)someData,strlen(someData),HAL_MAX_DELAY);
-//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+		if(status == HAL_OK)
+		{
+			HAL_UART_Transmit(C_UART,(uint8_t *)FLASH_SUCCESS,1,HAL_MAX_DELAY);
+		}
+		else{
+			HAL_UART_Transmit(C_UART,(uint8_t *)FLASH_FAILED,1,HAL_MAX_DELAY);
+		}
+		//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 //		uint32_t currentTick = HAL_GetTick();
 //		print_debug_msg("Curren Tick: %d\r\n",currentTick);
 //    while(HAL_GetTick() <= (currentTick + 500));
 	}
+}
+
+uint8_t write_data_into_flash(TypeDef_Intel_Hex *handle, uint32_t mem_base_addr)
+{
+	HAL_FLASH_Unlock();
+	uint8_t status;
+	//Set starting memory address 
+	handle->addr += mem_base_addr;
+	
+	for(uint32_t i = 0 ; i < handle->length ; i++)
+	{
+		//writing into the flash byte by byte
+		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,handle->addr + i,handle->data[i] );
+		
+		//Error handling
+		if(status != HAL_OK)
+		{
+			HAL_FLASH_Lock();
+			return HAL_ERROR;
+		}
+	}
+  HAL_FLASH_Lock();
+	return status;
 }
 
 void jump_to_user_app()
