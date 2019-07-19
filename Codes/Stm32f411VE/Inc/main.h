@@ -37,7 +37,13 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+typedef struct Intel_Hex{
+  uint8_t length;
+  uint32_t addr;
+  uint8_t record_type;
+  uint8_t data[32];
+  uint8_t check_sum;
+}TypeDef_Intel_Hex;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -48,7 +54,7 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
-#define FLASH_SECTOR_2_BASE_ADDRESS		0x08008000
+
 
 /* USER CODE END EM */
 
@@ -56,13 +62,34 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+/**
+  * @brief Jumping the execution to the bootloader application
+  * @param void
+  * @retval void
+  */
 void bootloader_uart(void);
+
+/**
+  * @brief Jumping the execution to the user application sector address
+  * @param void
+  * @retval void
+  */
 void jump_to_user_app(void);
+
+/**
+  * @brief Parsing data from Intel Hex formated string
+  * @param  handle Pointer to the Intel Hex string struct TypeDef_Intel_Hex get_flash_data
+  *         contains intel hex file struct
+  * @param  rx_buffer Pointer to RX data buffer
+  * @retval status if check sum faild then returns 0, if successful then
+  *         returns 1
+  */
+uint8_t parse_data_from_intel_hex(TypeDef_Intel_Hex *handle, uint8_t *rx_buffer);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private defines */
-
+#define FLASH_SECTOR_2_BASE_ADDRESS		0x08008000
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

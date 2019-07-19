@@ -23,6 +23,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -42,6 +44,8 @@
 /* USER CODE BEGIN PM */
 #define C_UART		&huart2
 #define D_UART		&huart6
+#define MAX_RX_BUFFER	200
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -70,6 +74,8 @@ static void print_debug_msg(char *format,...);
 /* USER CODE BEGIN 0 */
  char someData[] = "Hello from bootloader\r\n";
  volatile uint32_t addr = 0x08008000;
+ uint8_t	bl_rx_buffer[MAX_RX_BUFFER] = {0};
+ uint8_t length = 0;
 /* USER CODE END 0 */
 
 /**
@@ -110,7 +116,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0))
+	if(!HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0))
 	{
 		print_debug_msg("Bootloader Mode\r\n");
 		bootloader_uart();
@@ -315,14 +321,25 @@ static void print_debug_msg(char *format,...)
 
 void bootloader_uart()
 {
+	TypeDef_Intel_Hex flash_data;
 	//All the booting related code will be here.
 	/*Demo code only for testing*/
 	while(1)
 	{
-		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
-		uint32_t currentTick = HAL_GetTick();
-		print_debug_msg("Curren Tick: %d\r\n",currentTick);
-    while(HAL_GetTick() <= (currentTick + 500));
+		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+		HAL_UART_Transmit(C_UART,(uint8_t *)someData,strlen(someData),HAL_MAX_DELAY);
+		memset(bl_rx_buffer, 0, MAX_RX_BUFFER);
+		HAL_UART_Receive(C_UART,bl_rx_buffer,43,HAL_MAX_DELAY);
+		
+		parse_data_from_intel_hex(&flash_data,bl_rx_buffer);
+		
+		HAL_Delay(1000);
+		//HAL_UART_Transmit(C_UART,(uint8_t *)flash_data.length,sizeof(flash_data.length),HAL_MAX_DELAY);
+		HAL_UART_Transmit(C_UART,(uint8_t *)someData,strlen(someData),HAL_MAX_DELAY);
+//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+//		uint32_t currentTick = HAL_GetTick();
+//		print_debug_msg("Curren Tick: %d\r\n",currentTick);
+//    while(HAL_GetTick() <= (currentTick + 500));
 	}
 }
 
@@ -354,6 +371,55 @@ void jump_to_user_app()
 	//app_reset_handler = (void (*)(void)) (*((uint32_t *)(addr + 4)));
 	user_app_reset_handler();
 }
+
+uint8_t parse_data_from_intel_hex(TypeDef_Intel_Hex *handle, uint8_t *rx_buffer)
+{
+    char temp[3] = {0};
+    //Defines whether is Address or flash_data
+    //uint8_t hex_type = 0;
+    
+    //Length of Intel Hex
+    memcpy(temp,&rx_buffer[1],2);
+    handle->length = (uint8_t)strtol(temp, NULL, 16);
+    
+    //Address from Intel Hex
+    memset(temp,0,3);
+    memcpy(temp,&rx_buffer[3],4);
+    handle->addr = (uint32_t)strtol(temp, NULL, 16);
+
+    //Record type
+    memset(temp,0,3);
+    memcpy(temp,&rx_buffer[7],2);
+    handle->record_type = (uint8_t)strtol(temp, NULL, 16);
+    
+    //data type
+    uint8_t j = 9;
+    for (int i = 0; i < handle->length; i++) {
+        memset(temp,0,3);
+        memcpy(temp,&rx_buffer[j],2);
+        handle->data[i] = (uint8_t)strtol(temp, NULL, 16);
+        j+=2;
+    }
+    
+    //check sum
+    memset(temp,0,3);
+    memcpy(temp,&rx_buffer[j],2);
+    handle->check_sum = (uint8_t)strtol(temp, NULL, 16);
+    
+    //calculate check sum
+    uint8_t check_sum_cal = 0;
+    check_sum_cal = handle->length;// + handle->addr + handle->record_type;
+    check_sum_cal = check_sum_cal + (handle->addr >> 8);
+    check_sum_cal = check_sum_cal + (handle->addr & 0x00ff);
+    check_sum_cal = check_sum_cal + handle->record_type;
+    for (int i = 0; i < handle->length; i++) {
+      check_sum_cal = check_sum_cal + handle->data[i];
+    }
+    check_sum_cal = 0x01 + ~(check_sum_cal);
+    //printf("%s\n", (handle->check_sum == check_sum_cal)? "MATCH":"FAILED");
+    return ((handle->check_sum == check_sum_cal)? 1 : 0);
+}
+
 /* USER CODE END 4 */
 
 /**
