@@ -20,14 +20,13 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +43,7 @@
 /* USER CODE BEGIN PM */
 #define C_UART		&huart2
 #define D_UART		&huart6
-#define MAX_RX_BUFFER	200
+#define MAX_RX_BUFFER	64
 
 /* USER CODE END PM */
 
@@ -53,6 +52,7 @@ CRC_HandleTypeDef hcrc;
 
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart6;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 
@@ -61,6 +61,7 @@ UART_HandleTypeDef huart6;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_CRC_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART6_UART_Init(void);
@@ -107,6 +108,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_CRC_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
@@ -130,9 +132,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-		//uint32_t currentTick = HAL_GetTick();
-		//printmsg("Curren Tick: %d\r\n",currentTick);
-    //while(HAL_GetTick() <= (currentTick + 500));
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -273,6 +273,21 @@ static void MX_USART6_UART_Init(void)
 
 }
 
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+
+}
+
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -322,32 +337,71 @@ static void print_debug_msg(char *format,...)
 void bootloader_uart()
 {
 	TypeDef_Intel_Hex flash_data;
-	uint8_t status;
+	uint8_t status, ret;
+	
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15,GPIO_PIN_RESET);
+	//char temp[3] = {0};
+	//uint16_t line_count;
 	//All the booting related code will be here.
 	/*Demo code only for testing*/
 	while(1)
 	{
-		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-		HAL_UART_Transmit(C_UART,(uint8_t *)someData,strlen(someData),HAL_MAX_DELAY);
+		//led status for updating
+		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14);
+		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15);
+		//HAL_UART_Transmit(C_UART,(uint8_t *)someData,strlen(someData),HAL_MAX_DELAY);
 		memset(bl_rx_buffer, 0, MAX_RX_BUFFER);
-		HAL_UART_Receive(C_UART,bl_rx_buffer,43,HAL_MAX_DELAY);
+		//strcpy((char *)bl_rx_buffer,":1080000050040020AD810008338D0008978C0008D3");
+		HAL_UART_Receive(C_UART,bl_rx_buffer,UART_REC_BLOCK_SIZE,HAL_MAX_DELAY);
+		//HAL_UART_Receive_DMA(C_UART,bl_rx_buffer,MAX_RX_BUFFER
 		
-		parse_data_from_intel_hex(&flash_data,bl_rx_buffer);
-		if(flash_data.record_type == INTEL_HEX_DATA)
+		//Line number implementation
+		//memcpy(temp,&bl_rx_buffer[1],2);
+    //line_count = (uint8_t)strtol(temp, NULL, 16);
+		
+		ret = parse_data_from_intel_hex(&flash_data,bl_rx_buffer);
+		if(ret == 0)
 		{
-			status = write_data_into_flash(&flash_data, FLASH_SECTOR_2_BASE_ADDRESS);
+			status = HAL_ERROR;
 		}
+		else
+		{
+			switch(flash_data.record_type)
+			{
+				case INTEL_HEX_DATA:
+					{
+						status = write_data_into_flash(&flash_data, 0x08000000);//0x08000000: Update from flash structure
+						break;
+					}
+				case END_OF_FILE:
+					{
+						status = HAL_OK;
+						break;
+					}
+				default:
+				{
+					//Nothing to do
+					break;
+				}
+			}
+		}
+//		if(flash_data.record_type == INTEL_HEX_DATA)
+//		{
+//			status = write_data_into_flash(&flash_data, FLASH_SECTOR_2_BASE_ADDRESS);
+//		}
 		
 		//HAL_Delay(1000);
 		//HAL_UART_Transmit(C_UART,(uint8_t *)flash_data.length,sizeof(flash_data.length),HAL_MAX_DELAY);
 		if(status == HAL_OK)
 		{
-			HAL_UART_Transmit(C_UART,(uint8_t *)FLASH_SUCCESS,1,HAL_MAX_DELAY);
+			HAL_UART_Transmit(C_UART,&flash_data.check_sum,1,HAL_MAX_DELAY);
 		}
 		else{
-			HAL_UART_Transmit(C_UART,(uint8_t *)FLASH_FAILED,1,HAL_MAX_DELAY);
+			flash_data.check_sum = ~(flash_data.check_sum);
+			HAL_UART_Transmit(C_UART,&flash_data.check_sum,1,HAL_MAX_DELAY);
 		}
-		//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+//		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 //		uint32_t currentTick = HAL_GetTick();
 //		print_debug_msg("Curren Tick: %d\r\n",currentTick);
 //    while(HAL_GetTick() <= (currentTick + 500));
@@ -359,12 +413,13 @@ uint8_t write_data_into_flash(TypeDef_Intel_Hex *handle, uint32_t mem_base_addr)
 	HAL_FLASH_Unlock();
 	uint8_t status;
 	//Set starting memory address 
-	handle->addr += mem_base_addr;
+	//handle->addr = handle->addr + mem_base_addr;
+	mem_base_addr = mem_base_addr + handle->addr;
 	
 	for(uint32_t i = 0 ; i < handle->length ; i++)
 	{
 		//writing into the flash byte by byte
-		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,handle->addr + i,handle->data[i] );
+		status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,mem_base_addr + i,handle->data[i] );
 		
 		//Error handling
 		if(status != HAL_OK)

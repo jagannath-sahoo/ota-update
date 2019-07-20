@@ -60,8 +60,7 @@ typedef struct Intel_Hex{
 #define	EXTENDED_LINEAR_ADDR 	0x04
 #define	START_LINEAR_ADDR 		0x05
 
-#define FLASH_SUCCESS					0xAA
-#define FLASH_FAILED					0xBB
+#define UART_REC_BLOCK_SIZE		43
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
