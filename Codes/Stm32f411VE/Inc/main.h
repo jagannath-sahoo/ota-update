@@ -37,6 +37,17 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
+typedef uint32_t BootSector;
+
+// Structure to be stored in last segment of flash
+// to select boot sector for booting up and update
+typedef struct{
+	BootSector current;				// Address of current code sector
+	BootSector update;				// Address of sector for the update
+	uint32_t updateAvailable;	// To store the status of update
+} BootSectorTypeDef;
+
 typedef struct Intel_Hex{
   uint8_t length;
   uint32_t addr;
@@ -54,6 +65,9 @@ typedef struct Intel_Hex{
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+#define TRUE	1
+#define FALSE	0
+
 #define	INTEL_HEX_DATA  			0x00
 #define	END_OF_FILE 					0x01
 #define	EXTENDED_SEGMENT_ADDR 0x02
@@ -61,6 +75,15 @@ typedef struct Intel_Hex{
 #define	START_LINEAR_ADDR 		0x05
 
 #define UART_REC_BLOCK_SIZE		43
+
+//#define STM32F407VGT6
+#ifdef STM32F407VGT6
+	#define SECTOR_NO 			11
+	#define BOOT_SECTOR_ADDRESS 	0x080E0000
+#else
+	#define SECTOR_NO 			7
+	#define BOOT_SECTOR_ADDRESS 	0x08060000
+#endif
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -91,8 +114,32 @@ void jump_to_user_app(void);
   */
 uint8_t parse_data_from_intel_hex(TypeDef_Intel_Hex *handle, uint8_t *rx_buffer);
 
-
+/**
+  * @brief Writting data into the flash in byte by byte order as provided with Intel Hex String
+  * @param TypeDef_Intel_Hex type structure contains the Intel Hex string information in 
+					 sorted order
+	* @param Base address as flash sector memory address where to write
+  * @retval if successful returns HAL_OK else HAL_ERROR
+  */
+	
 uint8_t write_data_into_flash(TypeDef_Intel_Hex *handle, uint32_t mem_base_addr);
+
+/**
+  * @brief Erasing the provided flash sector
+  * @param sector no for clearing sector address
+  * @retval void
+  */
+static void FLASH_EraseSector(uint32_t sector_no);
+
+/**
+  * @brief Writing data to flash memory
+  * @param offSet offset from the starting address of the sector
+	* @param wrBf	pointer to the buffer from which data is to be written
+	*	@param Nsize Number of data blocks to be wriien
+  * @retval void
+  */
+void write_to_flash_word(uint32_t offSet, void *wrBuf, uint32_t Nsize);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
