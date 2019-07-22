@@ -129,7 +129,7 @@ uint8_t write_data_into_flash(TypeDef_Intel_Hex *handle, uint32_t mem_base_addr)
   * @param sector no for clearing sector address
   * @retval void
   */
-static void FLASH_EraseSector(uint32_t sector_no);
+void flash_erase_sector(uint32_t sector_no);
 
 /**
   * @brief Writing data to flash memory

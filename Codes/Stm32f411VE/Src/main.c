@@ -349,6 +349,9 @@ void bootloader_uart()
 	
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14,GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15,GPIO_PIN_RESET);
+	
+	//Erase Sector address
+	flash_erase_sector(SECTOR_NO);
 	//char temp[3] = {0};
 	//uint16_t line_count;
 	//All the booting related code will be here.
@@ -380,8 +383,9 @@ void bootloader_uart()
 				case EXTENDED_LINEAR_ADDR:
 					{
 						//Set the staring address
-						update_flash_base_address = flash_data.addr << 10;
+						update_flash_base_address = ((flash_data.data[0] << 8) + flash_data.data[1]) << 16;
 						//boot_sector.update = flash_data.addr;
+						status = HAL_OK;
 						break;
 					}
 				case INTEL_HEX_DATA:
@@ -394,6 +398,7 @@ void bootloader_uart()
 							base_offset_address = flash_data.addr;
 						}
 						status = write_data_into_flash(&flash_data, update_flash_base_address);
+						break;
 					}
 				case END_OF_FILE:
 					{
@@ -401,6 +406,9 @@ void bootloader_uart()
 						boot_sector.current = update_flash_base_address + base_offset_address;
 						boot_sector.updateAvailable = FALSE;									// Setting Flag of update available
 						write_to_flash_word(0, &boot_sector,3);	
+						
+						// Reset MCU
+						NVIC_SystemReset();
 						status = HAL_OK;
 						break;
 					}
@@ -465,7 +473,7 @@ void jump_to_user_app()
 	
 	//Read the MSP value from the BASE address of Flash
 	//uint32_t msp_address = *(volatile uint32_t *)FLASH_SECTOR_2_BASE_ADDRESS;
-	uint32_t msp_address = boot_sector.current;
+	uint32_t msp_address = *(volatile uint32_t *)boot_sector.current;
 	print_debug_msg("BL: APP MSP Address: %#x",msp_address);
 	__set_MSP(msp_address);
 	
@@ -479,7 +487,7 @@ void jump_to_user_app()
 	//FLASH_SECTOR_2_BASE_ADDRESS + 4
 	//Then Jump to USER APP
 	//uint32_t resethanlder_address = *(volatile uint32_t*)(FLASH_SECTOR_2_BASE_ADDRESS + 4);
-	uint32_t resethanlder_address = boot_sector.current + 4;
+	uint32_t resethanlder_address = *(volatile uint32_t*)(boot_sector.current + 4);
 	print_debug_msg("BL: APP Reset Handler Address:%#x \r\n",resethanlder_address);
 	user_app_reset_handler = (void(*)(void))resethanlder_address;
 	//app_reset_handler();
@@ -536,7 +544,7 @@ uint8_t parse_data_from_intel_hex(TypeDef_Intel_Hex *handle, uint8_t *rx_buffer)
     return ((handle->check_sum == check_sum_cal)? 1 : 0);
 }
 
-static void FLASH_EraseSector(uint32_t sector_no)
+void flash_erase_sector(uint32_t sector_no)
 {
 	HAL_FLASH_Unlock();
 	FLASH_Erase_Sector(sector_no, FLASH_VOLTAGE_RANGE_3);
@@ -549,7 +557,7 @@ void write_to_flash_word(uint32_t offSet, void *wrBuf, uint32_t Nsize)
 	uint32_t flashAddress = BOOT_SECTOR_ADDRESS + offSet;
 	
 	//Erase sector before write
-	FLASH_EraseSector(SECTOR_NO);				// This will increasing the latency by substancial amount
+	flash_erase_sector(SECTOR_NO);				// This will increasing the latency by substancial amount
 	
 	//Unlock Flash
 	HAL_FLASH_Unlock();
