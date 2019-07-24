@@ -44,9 +44,11 @@ typedef uint32_t BootSector;
 // to select boot sector for booting up and update
 typedef struct{
 	BootSector current;				// Address of current code sector
-	BootSector update;				// Address of sector for the update
 	uint32_t updateAvailable;	// To store the status of update
-} BootSectorTypeDef;
+	uint32_t sector_no;
+	uint32_t sector_addr;
+	uint32_t version;
+} SignatureTypeDef;
 
 typedef struct Intel_Hex{
   uint8_t length;
@@ -59,7 +61,8 @@ typedef struct Intel_Hex{
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+//For debugging
+static uint8_t response = '$';
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -74,15 +77,15 @@ typedef struct Intel_Hex{
 #define	EXTENDED_LINEAR_ADDR 	0x04
 #define	START_LINEAR_ADDR 		0x05
 
-#define UART_REC_BLOCK_SIZE		43
+#define UART_REC_BLOCK_SIZE		64
 
 //#define STM32F407VGT6
 #ifdef STM32F407VGT6
-	#define SECTOR_NO 			11
-	#define BOOT_SECTOR_ADDRESS 	0x080E0000
+	#define SIGNATURE_SECTOR_NO 			11
+	#define SIGNATURE_BOOT_ADDRESS 	0x080E0000
 #else
-	#define SECTOR_NO 			7
-	#define BOOT_SECTOR_ADDRESS 	0x08060000
+	#define SIGNATURE_SECTOR_NO 			7
+	#define SIGNATURE_BOOT_ADDRESS 	0x08060000
 #endif
 /* USER CODE END EM */
 

@@ -29,3 +29,7 @@ stm32f411ve_user_app\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_f
 stm32f411ve_user_app\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h
 stm32f411ve_user_app\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h
 stm32f411ve_user_app\main.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+stm32f411ve_user_app\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
+stm32f411ve_user_app\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+stm32f411ve_user_app\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+stm32f411ve_user_app\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h

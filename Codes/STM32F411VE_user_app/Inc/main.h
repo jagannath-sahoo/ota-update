@@ -37,6 +37,27 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef uint32_t BootSector;
+static uint8_t response = '$';
+
+// Structure to be stored in last segment of flash
+// to select boot sector for booting up and update
+typedef struct{
+	BootSector current;				// Address of current code sector
+	uint32_t updateAvailable;	// To store the status of update
+	uint32_t sector_no;
+	uint32_t sector_addr;
+	uint32_t version;
+} SignatureTypeDef;
+
+//OTA update request structure
+typedef struct{
+	char board[32];
+	uint32_t version;
+	char secure_id[10];
+	uint32_t sector_no;
+	uint32_t sector_addr;
+}OTAUpdateRequestTypeDef;
 
 /* USER CODE END ET */
 
@@ -47,6 +68,23 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
+#define TRUE	1
+#define FALSE	0
+
+#define MAX_RX_BUFFER 64
+
+//AUTHORIZATION INFORMATION
+#define BOARD_NAME	"STM32F407VGT6"
+#define SECURE_ID		"A1B2C3D4"
+
+//#define STM32F407VGT6
+#ifdef STM32F407VGT6
+	#define SIGNATURE_SECTOR_NO 			11
+	#define SIGNATURE_FLASH_ADDRESS 	0x080E0000
+#else
+	#define SIGNATURE_SECTOR_NO 			7
+	#define SIGNATURE_FLASH_ADDRESS 	0x08060000
+#endif
 
 /* USER CODE END EM */
 
@@ -54,6 +92,36 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+/**
+  * @brief Erasing the provided flash sector
+  * @param void
+  * @retval void
+  */
+static void FLASH_EraseSector(void);
+
+/**
+  * @brief Writing data to flash memory
+  * @param offSet		:		offset from the starting address of the sector
+	* @param wrBf			: 	pointer to the buffer from which data is to be written
+	*	@param Nsize		:		Number of data blocks to be wriien
+  * @retval void
+  */
+void write_to_flash_word(uint32_t offSet, void *wrBuf, uint32_t Nsize);
+
+/**
+  * @brief Parsing upadte request string from ESP
+  * @param handle reference of OTAUpdateRequestTypeDef for parsing
+	* @param data	update requested data receied from ESP
+  * @retval pointer to OTAUpdateRequestTypeDef type handle
+  */
+OTAUpdateRequestTypeDef* parsing_update_request(OTAUpdateRequestTypeDef *handle, char *data);
+
+/**
+  * @brief Parsing upadte request string from ESP
+  * @param str string to reverse
+  * @retval pointer to reversed string
+  */
+char *strrev(char *str);
 
 /* USER CODE END EFP */
 

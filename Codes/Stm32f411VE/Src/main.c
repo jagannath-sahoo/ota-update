@@ -79,7 +79,7 @@ static void print_debug_msg(char *format,...);
  uint8_t length = 0;
  uint32_t update_flash_base_address = 0;
  uint32_t base_offset_address = 0;
- BootSectorTypeDef boot_sector;
+ SignatureTypeDef signature_sector;
  //Flag for extracting of vector from hex string to update the sector address
  uint32_t flag = 1;					
 /* USER CODE END 0 */
@@ -120,13 +120,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	
 	//Read the flash structure from boot sector address
-	boot_sector = *(BootSectorTypeDef *)(uint32_t *)BOOT_SECTOR_ADDRESS;
+	signature_sector = *(SignatureTypeDef *)(uint32_t *)SIGNATURE_BOOT_ADDRESS;
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0) || boot_sector.updateAvailable)
+	if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0) || signature_sector.updateAvailable)
+	//if(HAL_GPIO_ReadPin(GPIOA,GPIO_PIN_0))
 	{
 		print_debug_msg("Bootloader Mode\r\n");
 		bootloader_uart();
@@ -346,16 +347,19 @@ void bootloader_uart()
 {
 	TypeDef_Intel_Hex flash_data;
 	uint8_t status, ret;
+	char checksum_str[3];
 	
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14,GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15,GPIO_PIN_RESET);
 	
 	//Erase Sector address
-	flash_erase_sector(SECTOR_NO);
+	flash_erase_sector(signature_sector.sector_no);//Get the flash sector from User Application after auth. from Signature Structure
 	//char temp[3] = {0};
 	//uint16_t line_count;
 	//All the booting related code will be here.
 	/*Demo code only for testing*/
+	//For Debugging
+	HAL_UART_Transmit(C_UART,&response,1,HAL_MAX_DELAY);
 	while(1)
 	{
 		//led status for updating
@@ -384,7 +388,7 @@ void bootloader_uart()
 					{
 						//Set the staring address
 						update_flash_base_address = ((flash_data.data[0] << 8) + flash_data.data[1]) << 16;
-						//boot_sector.update = flash_data.addr;
+						//signature_sector.update = flash_data.addr;
 						status = HAL_OK;
 						break;
 					}
@@ -402,13 +406,14 @@ void bootloader_uart()
 					}
 				case END_OF_FILE:
 					{
-						boot_sector = *(BootSectorTypeDef *)(uint32_t *)BOOT_SECTOR_ADDRESS; 	// Reading Boot status structure from flash
-						boot_sector.current = update_flash_base_address + base_offset_address;
-						boot_sector.updateAvailable = FALSE;									// Setting Flag of update available
-						write_to_flash_word(0, &boot_sector,3);	
+						signature_sector = *(SignatureTypeDef *)(uint32_t *)SIGNATURE_BOOT_ADDRESS; 	// Reading Boot status structure from flash
+						signature_sector.current = update_flash_base_address + base_offset_address;
+						signature_sector.updateAvailable = FALSE;									// Setting Flag of update available
+						write_to_flash_word(0, &signature_sector, 5);	
 						
 						// Reset MCU
 						NVIC_SystemReset();
+						
 						status = HAL_OK;
 						break;
 					}
@@ -428,11 +433,20 @@ void bootloader_uart()
 		//HAL_UART_Transmit(C_UART,(uint8_t *)flash_data.length,sizeof(flash_data.length),HAL_MAX_DELAY);
 		if(status == HAL_OK)
 		{
-			HAL_UART_Transmit(C_UART,&flash_data.check_sum,1,HAL_MAX_DELAY);
+			//HAL_UART_Transmit(C_UART,&response,1,HAL_MAX_DELAY);
+			sprintf(checksum_str,"%02X",flash_data.check_sum);
+			checksum_str[2] = response;
+			//memcpy(&checksum_str[2],&response,1);
+			HAL_UART_Transmit(C_UART,(uint8_t *)checksum_str,3,HAL_MAX_DELAY);
+			//HAL_UART_Transmit(C_UART,&response,1,HAL_MAX_DELAY);
 		}
 		else{
+			//HAL_UART_Transmit(C_UART,&response,1,HAL_MAX_DELAY);
 			flash_data.check_sum = ~(flash_data.check_sum);
-			HAL_UART_Transmit(C_UART,&flash_data.check_sum,1,HAL_MAX_DELAY);
+			sprintf(checksum_str,"%02X",flash_data.check_sum);
+			checksum_str[2] = response;
+			HAL_UART_Transmit(C_UART,(uint8_t *)checksum_str,1,HAL_MAX_DELAY);
+			//HAL_UART_Transmit(C_UART,&response,1,HAL_MAX_DELAY);
 		}
 //		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
 //		uint32_t currentTick = HAL_GetTick();
@@ -473,7 +487,7 @@ void jump_to_user_app()
 	
 	//Read the MSP value from the BASE address of Flash
 	//uint32_t msp_address = *(volatile uint32_t *)FLASH_SECTOR_2_BASE_ADDRESS;
-	uint32_t msp_address = *(volatile uint32_t *)boot_sector.current;
+	uint32_t msp_address = *(volatile uint32_t *)signature_sector.current;
 	print_debug_msg("BL: APP MSP Address: %#x",msp_address);
 	__set_MSP(msp_address);
 	
@@ -487,7 +501,7 @@ void jump_to_user_app()
 	//FLASH_SECTOR_2_BASE_ADDRESS + 4
 	//Then Jump to USER APP
 	//uint32_t resethanlder_address = *(volatile uint32_t*)(FLASH_SECTOR_2_BASE_ADDRESS + 4);
-	uint32_t resethanlder_address = *(volatile uint32_t*)(boot_sector.current + 4);
+	uint32_t resethanlder_address = *(volatile uint32_t*)(signature_sector.current + 4);
 	print_debug_msg("BL: APP Reset Handler Address:%#x \r\n",resethanlder_address);
 	user_app_reset_handler = (void(*)(void))resethanlder_address;
 	//app_reset_handler();
@@ -554,10 +568,10 @@ void flash_erase_sector(uint32_t sector_no)
 
 void write_to_flash_word(uint32_t offSet, void *wrBuf, uint32_t Nsize)
 {
-	uint32_t flashAddress = BOOT_SECTOR_ADDRESS + offSet;
+	uint32_t flashAddress = SIGNATURE_BOOT_ADDRESS + offSet;
 	
 	//Erase sector before write
-	flash_erase_sector(SECTOR_NO);				// This will increasing the latency by substancial amount
+	flash_erase_sector(SIGNATURE_SECTOR_NO);
 	
 	//Unlock Flash
 	HAL_FLASH_Unlock();
