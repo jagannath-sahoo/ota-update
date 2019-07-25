@@ -1,6 +1,6 @@
 import paho.mqtt.client as mqtt
 
-#Sevrer is subcribe to 'mytopic/test/response' for receiving respose
+#OTA-Server is subcribe to 'mytopic/test/response' for receiving respose
 #while it can send firmware packets on 'mytopic/test/request' topic
 #ESP need to send the line number of starting and ending sequence in the following format
 #       ACK$<starting line number>$<ending line number>
