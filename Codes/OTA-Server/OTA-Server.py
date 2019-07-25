@@ -1,8 +1,8 @@
 import paho.mqtt.client as mqtt
 
-#Sever is subcribe to 'mytopic/test/response' for receiving respose
+#Sevrer is subcribe to 'mytopic/test/response' for receiving respose
 #while it can send firmware packets on 'mytopic/test/request' topic
-#ESP need to send the line numbers of starting and ending sequence in the following format
+#ESP need to send the line number of starting and ending sequence in the following format
 #       ACK$<starting line number>$<ending line number>
 #       Ex: ACK$0$50
 #An End Of File string is added to notify ESP for completion of fimware data packets if User don't want
