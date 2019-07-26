@@ -1,0 +1,14 @@
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+myrtos_eventflags\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
+myrtos_eventflags\croutine.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+myrtos_eventflags\croutine.o: ../Inc/FreeRTOSConfig.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h
+myrtos_eventflags\croutine.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

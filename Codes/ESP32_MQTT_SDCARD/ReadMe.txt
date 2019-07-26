@@ -1,1 +1,0 @@
-This folder mainly contains the codes related to the ESP32.
