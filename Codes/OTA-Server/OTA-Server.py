@@ -29,10 +29,10 @@ end_of_file = 'E_O_F'
 ##########################################################################################
 #CLOUD MQTT AUTH.
 ##########################################################################################
-username = 'dyyphfkl'
-password = 'UCwekHlkR7Fp'
-ipAddress = 'm16.cloudmqtt.com'
-portNo = 11266
+username = ''#dyyphfkl'
+password = ''#UCwekHlkR7Fp'
+ipAddress = '192.168.0.134'#'m16.cloudmqtt.com'
+portNo = 1883
 
 #OTA firmware data is parsed into a buffer and maintained in string array
 ota_data = []
@@ -67,7 +67,7 @@ def getFirmware(msg, start, end):
     mqttc.publish(update_topic_publish, data)
 
 """
-Parse the received message from subcribed topic
+Pwarse the received message from subcribed topic
 param:
         msg: Received msg from the server in byte array
 return: void
@@ -76,7 +76,8 @@ def parseMsg(msg):
     str_rec = msg.decode(encoding='utf-8', errors='strict')
     rec = str_rec.split('$')
     print(rec)
-    getFirmware(rec[0],int(rec[1]), int(rec[2]))
+    #getFirmware(rec[0],int(rec[1]) , int(rec[2]))
+    getFirmware(rec[0],int(rec[2]) - 1 , int(rec[2]))
 
 ##########################################################################
 #       MQTT Callbacks
@@ -104,7 +105,7 @@ mqttc.on_subscribe = onSubscribe
 mqttc.on_publish = onPublish
 
 # Connect
-mqttc.username_pw_set(username, password)
+#mqttc.username_pw_set(username, password)
 mqttc.connect(ipAddress, portNo)
 
 # Start subscribe, with QoS level 0
@@ -112,6 +113,6 @@ mqttc.subscribe(response_topic_subscribe, 0)
 
 #Forever loop
 rc = 0
-while rc == 0:
-    rc = mqttc.loop()
+#while rc == 0:
+rc = mqttc.loop()
 print("rc: " + str(rc))

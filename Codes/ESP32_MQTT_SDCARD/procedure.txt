@@ -1,0 +1,79 @@
+    OTA Final Working procedure
+    NOTE:
+            Communication ESP32 ========>>>>>>> STM32F4        64 Bytes of block of data
+            Communication ESP32 <<<<<<<======== STM32F4        Variable block of data 
+
+1:  Normally, both ESP32 and STM will boot normally 
+    
+    Here the STM will update the ESP32 with Accelerometer data,
+    The same data will be published by the ESP32 (via MQTT) on the server.
+    
+    Data format will be of 32 Bytes (this will be treated as payload for MQTT publishing)
+    Data format: <X-data>,<Y-data>,<Z-data>$
+                Ex: -1234.563,-6792.565,-1244.583$   
+
+2:  While reading the data from STM32 (via UART), ESP32 will look for a specific
+    character 'C' (which means check for update). Upon receiving this abstracted request from
+    STM32, ESP32 will request for Update from the Server (over a specific topic).
+            -----------
+            STM32F4
+            -----------
+                USER button pressed =====> Send 'check_update' on C_UART
+                STM32 Blocked =====> Waiting for Authentication String or "NAK<000...63>"
+                Then return to its own task i.e. reading accelarometer data and transmit of C_UART
+
+3:  ESP32 request with "CHECK" ======>>>>>> MQTT OTA Server
+    ESP32 receiving            <<<<<<====== MQTT OTA Server as acknowledgement 
+                                            "$STM32F407VGT6$02$A1B2C3D4$2$08008000$" <Authentication Key>
+                                            Or "NACK"
+    --------------------------------------------------------------------------------------------------------------                                    
+        Authentication Key format:  $<Board Name>$<Version>$<Secure_id>$<Sector Address>$<Sector Address>$
+    --------------------------------------------------------------------------------------------------------------
+    ESP32 send Authentication key/NACK on UART =======>>>>>>>   Receiving on C_UART 
+                                                                STM32F4 Verify Authentication Key
+                                                                if Authentication == TRUE
+                                                                    send Reverse of Secure_id on C_UART
+                                                                else
+                                                                    send Secure_id on C_UART
+    ESP32 Receiving respone                    <<<<<<<<=======
+    Start receiving accelarometer data and
+    update on Server
+    if 'C' is again received then go to step 3
+
+    -------------------
+    STM32F4
+    -------------------
+        USER button pressed again ========>>>>>>>>> Jump to BOOTLOADER After checking signature flash structure
+                                                    STM32F4(BOOTLOADER) Send '$' on C_UART
+    -------------------
+    ESP32
+    -------------------
+        Download update after receiving '$' on UART(Means BOOTLOADER is ready to flash)
+    ESP32 "ACK$0$1"             ========>>>>>>>>> MQTT Server
+    ESP32 receive hex line and  <<<<<<<<========= 1st line of Hex string
+    Write to SD-card
+    ESP32 "ACK$0$2"             ========>>>>>>>>> MQTT Server
+    ESP32 receive hex line and  <<<<<<<<========= 2nd line of Hex string
+    Write to SD-card
+    '
+    '
+    '
+    '
+    ESP32 receive hex line 
+    "E_O_F" from server
+    Hex file Download
+    now we have complete hex 
+    file
+
+    ESP32 read 1st line of Hex string       ============>>>>>>>>>>          STM32F4 BOOTLOADER will receive on C_UART
+    from SD-card and send on UART                                           and write into the flash
+                                            <<<<<<<<<<<<==========          if flash write == SUCCESS
+                                                                                send checksum on C_UART followed '$'
+                                                                            else
+                                                                                send logical not of checksum on C_UART 
+                                                                                followed by '$'
+    if checksum(2 bytes character), not 
+    received send the same line again
+    -------------------------------------TILL End OF Hex file repeat above steps---------------------------------------
+    Start accelarometer reading from UART                                   Reboot with updated application
+    and update with server
