@@ -1,0 +1,35 @@
+    OTA Final Working procedure
+
+1:  Normally, both ESP32 and STM will boot normally 
+    
+    Here the STM will update the ESP32 with Accelerometer data,
+    The same data will be published by the ESP32 (via MQTT) on the server.
+    
+    Data format will be of 32 Bytes (this will be treated as payload for MQTT publishing)
+
+2:  While reading the data from STM32 (via UART), ESP32 will look for a specific
+    character 'C' (which means check for update). Upon receiving this abstracted request from
+    STM32, ESP32 will request for Update from the Server (over a specific topic).
+
+3:  MQTT Server, will respond to ESP32 with "Authentication Key" which will be sent as it is to the
+    STM32,
+            (At this moment, ESP32 is just listening to STM32 over the UART)
+    
+    Case 1: 
+      
+    In case, STM replies back with '$' then it will be understood as STM32 wants updated firmware
+    now, ESP32 will reply with string "ready", in turn STM32 will reply with '$'.
+
+    Case 2: 
+      
+    In case, STM replies back with data other than '$' then ESP32 will continue working as a publisher of
+    Accelarometer Data until '$' is received. (then procedure of Case 1 will be followed)
+
+4:  After receiving the final '$' from STM32, 
+                    ESP32 will read 64 bytes of data from SD card, 
+                    Saveastart sending the 64 bytes of code length to the 
+    STM32 in turn ESP32 will wait for checksum from STM32 (2 bytes character),
+
+
+
+ 
