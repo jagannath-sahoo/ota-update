@@ -38,17 +38,18 @@
     ESP32 Receiving respone                    <<<<<<<<=======
     Start receiving accelarometer data and
     update on Server
-    if 'check_update' is again received then go to step 3
+    if NAK recevied in the previous step
+    	'check_update' is again received then go to step 3
 
     -------------------
     STM32F4
     -------------------
         USER button pressed again ========>>>>>>>>> Jump to BOOTLOADER After checking signature flash structure
-                                                    STM32F4(BOOTLOADER) Send '$' on C_UART
+                                                    STM32F4(BOOTLOADER) Send "ready" on C_UART
     -------------------
     ESP32
     -------------------
-        Download update after receiving '$' on UART(Means BOOTLOADER is ready to flash)
+    Download update after receiving "ready" on UART(Means BOOTLOADER is ready to flash)
     ESP32 "ACK$0$1"             ========>>>>>>>>> MQTT Server
     ESP32 receive hex line and  <<<<<<<<========= 1st line of Hex string
     Write to SD-card
@@ -68,10 +69,11 @@
     ESP32 read 1st line of Hex string       ============>>>>>>>>>>          STM32F4 BOOTLOADER will receive on C_UART
     from SD-card and send on UART                                           and write into the flash
                                             <<<<<<<<<<<<==========          if flash write == SUCCESS
-                                                                                send checksum on C_UART followed '$'
+                                                                                send checksum on C_UART
                                                                             else
                                                                                 send logical not of checksum on C_UART 
-                                                                                followed by '$'
+                                                                                
+
     if checksum(2 bytes character), not 
     received send the same line again
     -------------------------------------TILL End OF Hex file repeat above steps---------------------------------------
