@@ -13,7 +13,7 @@
                 Ex: -1234.563,-6792.565,-1244.583$   
 
 2:  While reading the data from STM32 (via UART), ESP32 will look for a specific
-    character 'C' (which means check for update). Upon receiving this abstracted request from
+    character 'check_update' (which means check for update). Upon receiving this abstracted request from
     STM32, ESP32 will request for Update from the Server (over a specific topic).
             -----------
             STM32F4
@@ -38,7 +38,7 @@
     ESP32 Receiving respone                    <<<<<<<<=======
     Start receiving accelarometer data and
     update on Server
-    if 'C' is again received then go to step 3
+    if 'check_update' is again received then go to step 3
 
     -------------------
     STM32F4
