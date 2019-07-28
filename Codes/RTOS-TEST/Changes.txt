@@ -1,0 +1,20 @@
+Changes on the RTOS APPLICATON:
+	1. 	Appended Application Code with '$'
+	2. 	Deleted the periodic Check update task - "(void CheckUpdateThread(void *argument))"
+	3. 	When user press the button, STM will  check the Signature Structure on the Flash
+		for upadteAvailable flag. If it is False STM will send "check_update" to the ESP
+		and will wait for the response from ESP.
+			ACK  --->	Authorization Frame 
+			NACK --->	Anything Else
+		If Authentic update is found, STM will update the signature and do the required things
+	4. 	If again the button is pressed and updateAvailable of Signature Struture is found to be true
+		STM will notify the ESP to download the available update and will jump to the bootloader
+			
+			
+
+Points to implement/Think:
+	1. Should we use Mutex while sending "check_update" to ESP because it may lead to Priority Inversion or deadlock
+		(I have analyzed, there should  not be any problem)
+	2. Apply proper Debouncing on button
+	3. Disable/Enable Interrupts while writing Signature to Flash
+	4. Proper Modelling is left (like osDelayUntil())
