@@ -1,5 +1,7 @@
 /*********************** This is final Working code as of now and all the functionalities are working fine *******************
 
+
+
     == SD card has been implemented, just checksum is added ==
 
 serial data from ESP32 to the serial device (STM)
@@ -498,7 +500,7 @@ void flashSTMBorad()
 
 void sendStringToUart(String dummyString)
 {
-  char bufferarr[64];
+  char bufferarr[65];
   memset(bufferarr,'*',(sizeof(bufferarr)-1));
 
   dummyString.toCharArray(bufferarr,(sizeof(bufferarr)-1));
