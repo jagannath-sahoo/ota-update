@@ -1,0 +1,55 @@
+title Flow
+
+
+participant STM32F4
+participant ESP32
+participant OTA Server
+
+STM32F4->(0)ESP32:Accelerometer Data
+ESP32->(0)OTA Server:Publish Server using MQTT Broker
+
+STM32F4->(0)ESP32:"check_update"
+ESP32->(0)OTA Server:"check_update"
+
+STM32F4<-ESP32:"Auth. String"
+ESP32<-OTA Server:"Auth. String"
+opt Auth. check
+note over STM32F4:Auth Sucess
+STM32F4->(0)ESP32:Reverse of secure id
+note over STM32F4:Auth failed
+STM32F4->(0)ESP32:Secure id
+end
+
+
+STM32F4->(0)ESP32:"ESP32Ready"
+ESP32->(0)OTA Server:"ESP32Ready"
+
+activate ESP32
+ESP32(0)<-OTA Server:"update_confirmed"
+ESP32->(0)OTA Server:"ACK$0$1"
+ESP32<-OTA Server:"Hex String[0]"
+
+ESP32->(0)OTA Server:"ACK$0$2"
+ESP32<-OTA Server:"Hex String[1]"
+
+ESP32->(0)OTA Server:"..."
+ESP32<-OTA Server:"Hex String[...]"
+
+ESP32->(0)OTA Server:"ACK$0$<...>"
+ESP32<-OTA Server:"E_O_F"
+deactivate ESP32
+
+activate STM32F4
+STM32F4->(0)ESP32:"ready"
+STM32F4<-ESP32:"Hex String[0]"
+STM32F4->(0)ESP32:checksum
+STM32F4<-ESP32:"Hex String[1]"
+STM32F4->(0)ESP32:checksum
+STM32F4<-ESP32:"Hex String[end]"
+deactivate STM32F4
+
+
+
+
+
+
