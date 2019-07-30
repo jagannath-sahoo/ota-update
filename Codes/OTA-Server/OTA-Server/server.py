@@ -30,10 +30,10 @@ auth_data = '$STM32F407VGT6$02$A1B2C3D4$2$08008000$'
 ##########################################################################################
 # CLOUD MQTT AUTH.
 ##########################################################################################
-username = 'dyyphfkl'
-password = 'UCwekHlkR7Fp'
-ipAddress = '192.168.0.134'  # 'm16.cloudmqtt.com'
-portNo = 1883  # 11266
+#username = 'xxxx'
+#password = 'xxxx'
+ipAddress = '192.168.0.126'
+portNo = 1883
 
 # OTA firmware data is parsed into a buffer and maintained in string array
 ota_data = []
@@ -55,14 +55,16 @@ param:
         end:    ending sequence no
 return: void
 """
+
+
 def getFirmware(msg, start, end):
-    if (msg == "ACK"):
+    if msg == "ACK":
         data = ""
-        if (end > len(ota_data)):
+        if end > len(ota_data):
             data = ota_data[len(ota_data) - 1]
             mqttc.publish(update_topic_publish, data)
             return
-        while (start != end):
+        while start != end:
             data += ota_data[start]
             start += 1
     print(data)  # debug
@@ -70,7 +72,7 @@ def getFirmware(msg, start, end):
 
 
 """
-Pwarse the received message from subcribed topic
+Parse the received message from subscribed topic
 param:
         msg: Received msg from the server in byte array
 return: void
@@ -78,7 +80,7 @@ return: void
 
 
 def parseMsg(msg):
-        str_rec = msg.decode(encoding='utf-8', errors='strict')
+    str_rec = msg.decode(encoding='utf-8', errors='strict')
     if str_rec == "CHECK":
         mqttc.publish(update_topic_publish, "update_available")
     else:
@@ -121,7 +123,7 @@ mqttc.on_publish = onPublish
 # mqttc.username_pw_set(username, password)
 mqttc.connect(ipAddress, portNo)
 
-#mqttc.publish(update_topic_publish, "update_available")
+# mqttc.publish(update_topic_publish, "update_available")
 # Start subscribe, with QoS level 0
 mqttc.subscribe(response_topic_subscribe, 0)
 
