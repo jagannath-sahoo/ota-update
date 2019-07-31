@@ -32,7 +32,7 @@ auth_data = '$STM32F407VGT6$02$A1B2C3D4$2$08008000$'
 ##########################################################################################
 #username = 'xxxx'
 #password = 'xxxx'
-ipAddress = '192.168.0.126'
+ipAddress = '192.168.43.165'
 portNo = 1883
 
 # OTA firmware data is parsed into a buffer and maintained in string array
@@ -46,6 +46,7 @@ with open('my.hex', 'r') as reader:
         line = reader.readline()
         curr_count = curr_count + 1
     ota_data.append(end_of_file)  # Adding end of file string if don't want then just put null
+print(ota_data)#debug
 """
 Get the firmware from the string buffer array if it found "ACK"
 then it will publish desired sequence of packets to the publish topic
@@ -55,15 +56,10 @@ param:
         end:    ending sequence no
 return: void
 """
-
-
 def getFirmware(msg, start, end):
+    data = ""
     if msg == "ACK":
-        data = ""
-        if end > len(ota_data):
-            data = ota_data[len(ota_data) - 1]
-            mqttc.publish(update_topic_publish, data)
-            return
+        print("Read")
         while start != end:
             data += ota_data[start]
             start += 1
@@ -81,14 +77,16 @@ return: void
 
 def parseMsg(msg):
     str_rec = msg.decode(encoding='utf-8', errors='strict')
-    if str_rec == "CHECK":
-        mqttc.publish(update_topic_publish, "update_available")
+    print(str_rec)
+    if str_rec == "check_update":
+        mqttc.publish(update_topic_publish, auth_data)
+    elif str_rec == "ESP32Ready":
+        mqttc.publish(update_topic_publish, "file_confirmed")
     else:
         rec = str_rec.split('$')
         print(rec)
         # getFirmware(rec[0], int(rec[1]), int(rec[2]))
         getFirmware(rec[0], int(rec[2]) - 1, int(rec[2]))
-
 
 ##########################################################################
 #       MQTT Callbacks
