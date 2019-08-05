@@ -32,7 +32,7 @@ auth_data = '$STM32F407VGT6$02$A1B2C3D4$2$08008000$'
 ##########################################################################################
 #username = 'xxxx'
 #password = 'xxxx'
-ipAddress = '192.168.0.126'
+ipAddress = '192.168.43.165'
 portNo = 1883
 
 # OTA firmware data is parsed into a buffer and maintained in string array
